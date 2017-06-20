@@ -1,5 +1,5 @@
 Welcome to Thermal Radiation's documentation!
-======================================
+=============================================
 
 Contents:
 
@@ -9,7 +9,6 @@ Contents:
    readme
    installation
    usage
-   modules
    contributing
    authors
    history
