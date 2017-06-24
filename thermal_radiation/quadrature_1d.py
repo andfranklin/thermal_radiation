@@ -1,7 +1,13 @@
 from sympy.integrals.quadrature import gauss_legendre
 
 PRECISION = 20
-get_gauss_legendre_pairs = lambda order : gauss_legendre(order, PRECISION)
+
+def get_gauss_legendre_pairs(order):
+    qps, weights = gauss_legendre(order, PRECISION)
+    apprx_qps = [float(qp) for qp in qps]
+    apprx_weights = [float(weight) for weight in weights]
+    return apprx_qps, apprx_weights
+
 
 class Quadrature:
     def compute(self, func):
