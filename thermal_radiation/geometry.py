@@ -224,7 +224,7 @@ def to_xi_constraint(to_eta):
 
 quad_bounds = [from_xi_constraint, (0, 1), to_xi_constraint, (0, 1)]
 
-def get_triangle_view_factor(from_triangle, to_triangle, epsabs=1.0e-08, epsrel=1.0e-08, limit=50):
+def adaptive_triangle_view_factor(from_triangle, to_triangle, epsabs=1.0e-08, epsrel=1.0e-08, limit=50):
     """
     epsabs : float or int, optional
         Absolute error tolerance.
@@ -247,81 +247,62 @@ def get_triangle_view_factor(from_triangle, to_triangle, epsabs=1.0e-08, epsrel=
     return (quad_scale * ref_quad) / from_triangle.area
 
 
+def get_fixed_triangle_view_factor(quadrature):
+    quad_domain_to_func_domain = quadrature.quad_domain_to_func_domain
+
+    def triangle_view_factor(from_triangle, to_triangle):
+        quad_scale = 4.0 * from_triangle.area * to_triangle.area
+        triangle_diff_view_factor = generate_triangles_diff_view_factor(from_triangle, to_triangle)
+
+        total_view_factor = 0.0
+        for qp, weight in zip(quadrature.qps, quadrature.weights):
+            to_xi, to_eta = quad_domain_to_func_domain(qp[0], qp[1])
+            partially_applied_view_factor = lambda from_xi, from_eta : triangle_diff_view_factor(from_xi, from_eta, to_xi, to_eta)
+            solution = quadrature.compute(partially_applied_view_factor)
+            total_view_factor += weight * solution
+
+        return (quad_scale * total_view_factor) / from_triangle.area
+    return triangle_view_factor
+
+
 if __name__ == '__main__':
-    from math import tan, radians
-    import matplotlib.pyplot as plt
     from time import time
     import pickle
+    from .quadrature_2d import TriangleTensorProductGaussLegendre2D, TriangleSymmetricalGauss2D
 
-    def print_triangle(name, triangle):
-        print(f"Triangle {name}")
-        print(f"  area    : {triangle.area}")
-        print(f"  centroid: {triangle.centroid}")
-        print(f"  normal  : {triangle.normalized_normal}")
+    tensor_quad = TriangleTensorProductGaussLegendre2D(6, 6)
+    tensor_triangle_view_factor = get_fixed_triangle_view_factor(tensor_quad)
 
-    # a = Triangle([0, 0, 0], [1, 0, 0], [0, 1, 0])
-    # b = Triangle([0, 0, 1], [0, 1, 1], [1, 0, 1])
-    #
-    # print_triangle("A", a); print()
-    # print_triangle("B", b); print()
-    # print(get_triangle_view_factor(a, b))
+    symmetric_quad = TriangleSymmetricalGauss2D(13)
+    symmetric_triangle_view_factor = get_fixed_triangle_view_factor(symmetric_quad)
 
-    def apprx_parallel_directly_opposed_triangles(normalized_distance, theta):
-        base = 1.0
-        distance = base * normalized_distance
-        height = tan(radians(theta)) * base
-
-        triangle1 = Triangle(
-            [0.0,  0.0, 0.0   ], # a
-            [0.0,  0.0, height], # b
-            [base, 0.0, 0.0   ]  # c
+    triangle1 = Triangle(
+            [0.0,  0.0, 0.0], # a
+            [0.0,  0.0, 1.0], # b
+            [1.0,  0.0, 0.0]  # c
         )
 
-        # print_triangle("triangle1", triangle1); print()
-
-        triangle2 = Triangle(
-            [0.0,  distance, 0.0   ], # a
-            [base, distance, 0.0   ], # b
-            [0.0,  distance, height]  # c
+    triangle2 = Triangle(
+            [0.0,  0.5, 0.0], # a
+            [1.0,  0.5, 0.0], # b
+            [0.0,  0.5, 1.0]  # c
         )
 
-        # print_triangle("triangle2", triangle2); print()
+    # dummy problem
+    begin = time()
+    adaptive_solution = adaptive_triangle_view_factor(triangle1, triangle2)
+    end = time()
+    adaptive_time = end - begin
+    print(adaptive_solution, adaptive_time)
 
-        return get_triangle_view_factor(triangle1, triangle2)
+    begin = time()
+    tensor_solution = tensor_triangle_view_factor(triangle1, triangle2)
+    end = time()
+    tensor_time = end - begin
+    print(tensor_solution, tensor_time)
 
-    def pickle_data(file_name, data):
-        with open(file_name, mode="wb") as pckl_file:
-            pickle.dump(data, pckl_file)
-
-    relative_distaces = np.linspace(0.1, 10.0, 20)
-    angle = 75.0
-    view_factors = []
-
-    rds = []
-    times = []
-    angle_view_factors = []
-    for relative_distace in relative_distaces:
-        print(angle, relative_distace, end=" : \n")
-        begin = time()
-        view_factor = apprx_parallel_directly_opposed_triangles(relative_distace, angle)
-        angle_view_factors.append(view_factor)
-        end = time()
-        total = end - begin
-        times.append(total)
-        rds.append(relative_distace)
-        print(f"\t{view_factor:.10f} {total:.3f}")
-    # plt.plot(relative_distaces, angle_view_factors, label=f"${angle:2.0f}^o$")
-
-    angle_posfix = f"{angle:2.0f}.pkl"
-    pickle_data("view_factors_" + angle_posfix, angle_view_factors)
-    pickle_data("times_" + angle_posfix, times)
-    pickle_data("relative_dists_" + angle_posfix, rds)
-
-
-    # plt.legend()
-    # plt.xscale('log')
-    # plt.savefig('right_triangles.pdf')
-    # plt.show()
-
-    # sol = apprx_parallel_directly_opposed_triangles(1.0, 75.0)
-    # print(sol)
+    begin = time()
+    symmetric_solution = symmetric_triangle_view_factor(triangle1, triangle2)
+    end = time()
+    symmetric_time = end - begin
+    print(symmetric_solution, symmetric_time)

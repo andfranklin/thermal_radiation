@@ -26,15 +26,32 @@ class TriangleTensorProductGaussLegendre2D(QuadrilateralGaussLegendre2D):
       Inefficient for high N
       Relatively large number of quadrature points for the polynomial accuracy
       Unsymmetrical distribuation of quadrature points -- aesthetically undesirable
+
+    6 x 6 runs in about the same time as TriangleSymmetricalGauss2D(13)
     """
     def __init__(self, n_qps_x, n_qps_y):
         QuadrilateralGaussLegendre2D.__init__(self, n_qps_x, n_qps_y)
 
-    def compute(self, func):
-        def remapped_func(x, y):
+        def quad_domain_to_func_domain(x, y):
+            """
+            Mapping from the quadrilateral domain to the triangular domain
+            """
             xi = 0.25 * (1 + x) * (1 - y)
             eta = 0.5 * (1 + y)
-            return func(xi, eta) * 0.25 * (1 - eta)
+            return xi, eta
+
+        self.quad_domain_to_func_domain = quad_domain_to_func_domain
+
+        new_weights = []
+        for (x, y), weight in zip(self.qps, self.weights):
+            xi, eta = quad_domain_to_func_domain(x, y)
+            new_weights.append(weight * 0.25 * (1 - eta))
+        self.weights = new_weights
+
+    def compute(self, func):
+        def remapped_func(x, y):
+            xi, eta = self.quad_domain_to_func_domain(x, y)
+            return func(xi, eta)
 
         return QuadrilateralGaussLegendre2D.compute(self, remapped_func)
 
@@ -319,10 +336,12 @@ def vet_gauss_map(gauss_map, criteria, loud=False):
 
     return vetted_gauss_map
 
-# vetted_symmetrical_gauss_map = vet_gauss_map(symmetrical_gauss_map, points_in_domain)
-vetted_symmetrical_gauss_map = vet_gauss_map(symmetrical_gauss_map, points_in_domain_and_positive_weights, loud=True)
+vetted_symmetrical_gauss_map = vet_gauss_map(symmetrical_gauss_map, points_in_domain_and_positive_weights)
 
 class TriangleSymmetricalGauss2D(Quadrature):
+    """
+    13 runs in about the same time as TriangleTensorProductGaussLegendre2D(6, 6)
+    """
     def __init__(self, n_qps):
         qps_weights = vetted_symmetrical_gauss_map[n_qps]
 
@@ -334,6 +353,10 @@ class TriangleSymmetricalGauss2D(Quadrature):
         self.qps = qps
         self.weights = weights
 
+        def quad_domain_to_func_domain(xi, eta):
+            return xi, eta
+
+        self.quad_domain_to_func_domain = quad_domain_to_func_domain
 
 def integral_value(i, j):
     return (factorial(i) * factorial(j)) / factorial(i + j + 2)
