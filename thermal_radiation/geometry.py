@@ -174,14 +174,6 @@ def get_intersection_point(line1, line2):
     distance = (-1.0 * (line2_to_line1 @ line2_planer_normal)) / denom
     return line1.get_point(distance)
 
-#
-#     # aT = np.array([self.a, self.b])
-#     # a = aT.T
-#     # A = aT @ a
-#     # b = aT @ point
-#     # point_in_plane = np.linalg.solve(A, b)
-#     # return a @ point_in_plane
-
 
 def general_diff_view_factor(from_r, from_n, to_r, to_n):
     """ The differential view factor between to differential areas
