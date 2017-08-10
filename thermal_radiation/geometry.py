@@ -33,6 +33,8 @@ def classify_cross_product(from_vertex, to_vertex, point):
 
 
 class Triangle:
+    CURR_ID = 0
+
     def __init__(self, a, b, c):
         """
         Args:
@@ -64,6 +66,16 @@ class Triangle:
         self.normalized_normal = cross / cross_mag
         self.magnitude = cross_mag
         self.centroid = (self.a + self.b + self.c) / 3.0
+        self.id = Triangle.CURR_ID
+        Triangle.CURR_ID += 1
+
+    def __str__(self):
+        rtrn_str = "info"
+        return rtrn_str
+
+    def __repr__(self):
+        classname = type(self).__name__
+        return f"{classname}({self.id})"
 
     def project_onto(self, point):
         """
@@ -216,7 +228,7 @@ def to_xi_constraint(to_eta):
 
 quad_bounds = [from_xi_constraint, (0, 1), to_xi_constraint, (0, 1)]
 
-def adaptive_triangle_view_factor(from_triangle, to_triangle, epsabs=1.0e-08, epsrel=1.0e-08, limit=50):
+def adaptive_triangle_view_factor(from_triangle, to_triangle, epsabs=1.0e-14, epsrel=1.0e-08, limit=100):
     """
     epsabs : float or int, optional
         Absolute error tolerance.
@@ -258,43 +270,29 @@ def get_fixed_triangle_view_factor(quadrature):
 
 
 if __name__ == '__main__':
-    from time import time
-    import pickle
-    from .quadrature_2d import TriangleTensorProductGaussLegendre2D, TriangleSymmetricalGauss2D
-
-    tensor_quad = TriangleTensorProductGaussLegendre2D(6, 6)
-    tensor_triangle_view_factor = get_fixed_triangle_view_factor(tensor_quad)
-
-    symmetric_quad = TriangleSymmetricalGauss2D(13)
-    symmetric_triangle_view_factor = get_fixed_triangle_view_factor(symmetric_quad)
-
-    triangle1 = Triangle(
-            [0.0,  0.0, 0.0], # a
-            [0.0,  0.0, 1.0], # b
-            [1.0,  0.0, 0.0]  # c
+    tri_a = Triangle(
+            [0.0,  0.0, 0.0],
+            [1.0,  0.0, 0.0],
+            [0.0,  1.0, 0.0]
         )
 
-    triangle2 = Triangle(
-            [0.0,  0.5, 0.0], # a
-            [1.0,  0.5, 0.0], # b
-            [0.0,  0.5, 1.0]  # c
+    tri_b = Triangle(
+            [0.0,  0.0, 1.0],
+            [0.0,  1.0, 1.0],
+            [1.0,  0.0, 1.0]
         )
 
-    # dummy problem
-    begin = time()
-    adaptive_solution = adaptive_triangle_view_factor(triangle1, triangle2)
-    end = time()
-    adaptive_time = end - begin
-    print(adaptive_solution, adaptive_time)
+    diff_vf = generate_triangles_diff_view_factor(tri_a, tri_b)
 
-    begin = time()
-    tensor_solution = tensor_triangle_view_factor(triangle1, triangle2)
-    end = time()
-    tensor_time = end - begin
-    print(tensor_solution, tensor_time)
-
-    begin = time()
-    symmetric_solution = symmetric_triangle_view_factor(triangle1, triangle2)
-    end = time()
-    symmetric_time = end - begin
-    print(symmetric_solution, symmetric_time)
+    print("(0, 0, 0, 0) :", diff_vf(0.0, 0.0, 0.0, 0.0))
+    print("(0, 0, 1, 0) :", diff_vf(0.0, 0.0, 1.0, 0.0))
+    print("(0, 0, 0, 1) :", diff_vf(0.0, 0.0, 0.0, 1.0))
+    print()
+    print("(1, 0, 0, 0) :", diff_vf(1.0, 0.0, 0.0, 0.0))
+    print("(1, 0, 1, 0) :", diff_vf(1.0, 0.0, 1.0, 0.0))
+    print("(1, 0, 0, 1) :", diff_vf(1.0, 0.0, 0.0, 1.0))
+    print()
+    print("(0, 1, 0, 0) :", diff_vf(0.0, 1.0, 0.0, 0.0))
+    print("(0, 1, 1, 0) :", diff_vf(0.0, 1.0, 1.0, 0.0))
+    print("(0, 1, 0, 1) :", diff_vf(0.0, 1.0, 0.0, 1.0))
+    print()
