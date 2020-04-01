@@ -40,15 +40,18 @@ def two_coaxial_parallel_plates(l1, l2, d, apprx=False):
     Calculates the view factor from plate 1 to plate 2 where both plates are
     finte and square. The centerlines of each plate are lined up.
 
-                                          plate 2
-                              plate 1        _   ___
-                           ___   _          | |   A
-                            A   | |         | |   |
-                            |   | |         | |   |
-                            l1  | |<-- d -->| |   l2
-                            |   | |         | |   |
-                           _V_  |_|         | |   |
-                                            |_|  _V_
+                                                __
+                                               / /|
+                                              / / |
+                                             / /  |
+                                            /_/   |
+                                 _          | |   |
+                                | |         | |   |
+                                | |         | |   |
+                                | |<-- d -->| |   /
+                                | |         | |  /
+                                |_|         | | /
+                                            |_|/
 
     Args:
         l1 (float): The side length of the first plate
@@ -83,4 +86,5 @@ def two_coaxial_parallel_plates(l1, l2, d, apprx=False):
 
 
 if __name__ == '__main__':
-    print(two_coaxial_parallel_plates(2.0, 2.0, 1.0, apprx=False))
+    view_factor = two_coaxial_parallel_plates(10.0, 10.0, 9.0, apprx=False)
+    print(f"{view_factor:.40f}")
